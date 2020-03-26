@@ -140,7 +140,7 @@ public class cloudsimexample {
 		{
 			e.printStackTrace();
 			Log.printLine("The simulation has been terminated due to an unexpected error");
-		}
+		} 
 	}
 
 	private static Datacenter createDatacenter(String name){
@@ -246,22 +246,28 @@ public class cloudsimexample {
 
 		
 		String indent = "    ";
+		String newline="\n";
 		Log.printLine();
 		Log.printLine("========== OUTPUT ==========");
-		Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +
-				"Data center ID" + indent + "VM ID" + indent + indent + "Time" + indent + "Start Time" + indent + "Finish Time");
-
+		Log.printLine("Cloudlet ID" + indent+ indent + "STATUS" + indent + indent+
+				"Data center ID" + indent + indent+ "VM ID" + indent + indent + "    "+"Time" + indent + indent+ indent+ indent +"Start Time" + indent + indent+ indent + indent+ "Finish Time");
+	    String indent2="      ";
 		DecimalFormat dft = new DecimalFormat("###.##");
 		for (int i = 0; i < size; i++) {
 			cloudlet = list.get(i);
-			Log.print(indent + cloudlet.getCloudletId() + indent + indent);
-
+			System.out.printf(indent + cloudlet.getCloudletId() + indent + indent);
+			
 			if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS){
-				Log.print("SUCCESS");
-
-				Log.printLine( indent + indent + cloudlet.getResourceId() + indent + indent + indent + cloudlet.getVmId() +
-						indent + indent + indent + dft.format(cloudlet.getActualCPUTime()) +
-						indent + indent + dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime()));
+				System.out.printf(indent2+"SUCCESS");
+				
+//				Log.printLine( indent + indent + indent+ cloudlet.getResourceId() + indent + indent + indent + indent+"   "+ cloudlet.getVmId() +
+//						indent + indent + indent + dft.format(cloudlet.getActualCPUTime()) +
+//						indent + indent + dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime()));
+				System.out.printf( indent + indent + indent+ cloudlet.getResourceId() + indent + indent + indent + indent+"   "+ cloudlet.getVmId()+ indent + indent+ indent);
+				System.out.printf("%-22.5f",cloudlet.getActualCPUTime());
+				System.out.printf("%-25.5f", cloudlet.getExecStartTime());
+				System.out.printf("%-22.5f", cloudlet.getFinishTime());
+				System.out.println("");
 			}
 		}
 
@@ -438,7 +444,7 @@ public class cloudsimexample {
 		{
 			key=entry.getKey();
 		}
-		return key;
+		return key; 
 	}
 	/*return the only one value from this map =>minimum of expected completion */
 	 private static Double getMinimumTimeValue(Map<Integer[],Double> map)
@@ -471,7 +477,7 @@ public class cloudsimexample {
 	 private static void print2DArrayList(List<List<Double>> table)
 	 {
 		 String indent="           ";
-		 System.out.printf("The current required exceution time matirx is as below,with size of %d by %d\n", table.size(),table.get(0).size());
+		 System.out.println("The current required exceution time matirx is as below,with size of "+ table.size()+" by "+table.get(0).size());
 		 //System.out.printf(indent);
 		 for(int j=0;j<5;j++)
 		 {
@@ -498,6 +504,7 @@ public class cloudsimexample {
 		for (Entry<Integer[], Double> entry : map.entrySet()) {
 			Integer[] key = entry.getKey();
 			Double value = entry.getValue();
+			System.out.println("");
 			System.out.printf("The required values {row,column,cloudlet id} : {%d, %d, %d} ===> ", key[0], key[1], key[2]);
 			System.out.printf("%.4f(%s), located at row %d column %d, and the cloudlet id is %d \n", value, "max",
 					key[0], key[1], key[2]);
