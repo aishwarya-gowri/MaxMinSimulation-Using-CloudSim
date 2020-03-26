@@ -1,11 +1,14 @@
 package org.cloudbus.cloudsim.examples;
 
+
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.Map.Entry;
 
+import java.util.Random;
 import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.CloudletSchedulerTimeShared;
+import org.cloudbus.cloudsim.CloudletSchedulerSpaceShared;
 import org.cloudbus.cloudsim.Datacenter;
 import org.cloudbus.cloudsim.DatacenterBroker;
 import org.cloudbus.cloudsim.DatacenterCharacteristics;
@@ -18,10 +21,8 @@ import org.cloudbus.cloudsim.UtilizationModelFull;
 import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.VmAllocationPolicySimple;
 import org.cloudbus.cloudsim.VmSchedulerTimeShared;
+import org.cloudbus.cloudsim.VmSchedulerSpaceShared;
 import org.cloudbus.cloudsim.core.CloudSim;
-import org.cloudbus.cloudsim.core.SimEntity;
-import org.cloudbus.cloudsim.core.SimEvent;
-import org.cloudbus.cloudsim.examples.CloudSimExample8.GlobalBroker;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
@@ -29,18 +30,21 @@ import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
 
 public class cloudsimexample {
 	
+	/*Global variables*/
 	private static List<Cloudlet> cloudletList;
 	
 	private static List<Vm> vmList;
 	
+	/* function to create vmlist*/
+	
 	private static List<Vm> createVM(int userId, int vms, int idShift) {
 		//Creates a container to store VMs. This list is passed to the broker later
 		LinkedList<Vm> list = new LinkedList<Vm>();
-
+		Random rand=new Random();
 		//VM Parameters
 		long size = 10000; //image size (MB)
 		int ram = 512; //vm memory (MB)
-		int mips = 250;
+		int mips;
 		long bw = 1000;
 		int pesNumber = 1; //number of cpus
 		String vmm = "Xen"; //VMM name
@@ -49,20 +53,24 @@ public class cloudsimexample {
 		Vm[] vm = new Vm[vms];
 
 		for(int i=0;i<vms;i++){
-			vm[i] = new Vm(idShift + i, userId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+			mips=rand.nextInt(250);
+			vm[i] = new Vm(idShift + i, userId,mips , pesNumber, ram, bw, size, vmm, new CloudletSchedulerSpaceShared());
 			list.add(vm[i]);
+			System.out.println("");
+			System.out.println("Vm"+i+"  mips:"+mips);
 		}
-
+		 
 		return list;
 	}
 
+	/* function to create CloudletList */
 
 	private static List<Cloudlet> createCloudlet(int userId, int cloudlets, int idShift){
 		// Creates a container to store Cloudlets
 		LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
-
+		Random rand=new Random();
 		//cloudlet parameters
-		long length = 40000;
+		
 		long fileSize = 300;
 		long outputSize = 300;
 		int pesNumber = 1;
@@ -71,7 +79,7 @@ public class cloudsimexample {
 		Cloudlet[] cloudlet = new Cloudlet[cloudlets];
 
 		for(int i=0;i<cloudlets;i++){
-			cloudlet[i] = new Cloudlet(idShift + i, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+			cloudlet[i] = new Cloudlet(idShift + i,rand.nextInt(40000), pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 			// setting the owner of these Cloudlets
 			cloudlet[i].setUserId(userId);
 			list.add(cloudlet[i]);
@@ -79,19 +87,16 @@ public class cloudsimexample {
 
 		return list;
 	}
-
-
-	////////////////////////// STATIC METHODS ///////////////////////
-
+	
 	/**
-	 * Creates main() to run this example
-	 */
+	 * execution starts here
+	 **/
+	
 	public static void main(String[] args) {
-		Log.printLine("Starting CloudSimExample8...");
+		Log.printLine("Starting CloudSimProject Max-Min...");
 
 		try {
-			// First step: Initialize the CloudSim package. It should be called
-			// before creating any entities.
+			//Initialize the CloudSim package. 
 			int num_user = 2;   // number of grid users
 			Calendar calendar = Calendar.getInstance();
 			boolean trace_flag = false;  // mean trace events
@@ -99,40 +104,37 @@ public class cloudsimexample {
 			// Initialize the CloudSim library
 			CloudSim.init(num_user, calendar, trace_flag);
 
-			GlobalBroker globalBroker = new GlobalBroker("GlobalBroker");
-
-			// Second step: Create Datacenters
-			//Datacenters are the resource providers in CloudSim. We need at list one of them to run a CloudSim simulation
+			//  Create Datacenters
+			//Datacenters are the resource providers in CloudSim. We need atleast one of them to run a CloudSim simulation
 			Datacenter datacenter0 = createDatacenter("Datacenter_0");
 			Datacenter datacenter1 = createDatacenter("Datacenter_1");
-
-			//Third step: Create Broker
+			
+			//Create Broker 
+			//Broker assigns cloudlets to vms and registers the vm in a datacenter
 			DatacenterBroker broker = createBroker("Broker_0");
 			int brokerId = broker.getId();
 
-			//Fourth step: Create VMs and Cloudlets and send them to broker
+			//Create VMs and Cloudlets and send them to broker
 			vmList = createVM(brokerId, 5, 0); //creating 5 vms
 			cloudletList = createCloudlet(brokerId, 10, 0); // creating 10 cloudlets
 
 			broker.submitVmList(vmList);
 			broker.submitCloudletList(cloudletList);
-
-			// Fifth step: Starts the simulation
+			bindCloudletToVmsMaxMin();
+			
+			//Start the simulation
 			CloudSim.startSimulation();
 
-			// Final step: Print results when simulation is over
+			//Print results when simulation is over
+			
 			List<Cloudlet> newList = broker.getCloudletReceivedList();
-			newList.addAll(globalBroker.getBroker().getCloudletReceivedList());
-			bindCloudletToVmsMaxMin();
+			
+			//Stop the simulation			
 			CloudSim.stopSimulation();
 
 			printCloudletList(newList);
 
-			//Print the debt of each user to each datacenter
-			datacenter0.printDebts();
-			datacenter1.printDebts();
-
-			Log.printLine("CloudSim finished!");
+			Log.printLine("CloudSimProject Max-Min finished!");
 		}
 		catch (Exception e)
 		{
@@ -143,21 +145,18 @@ public class cloudsimexample {
 
 	private static Datacenter createDatacenter(String name){
 
-		// Here are the steps needed to create a PowerDatacenter:
-		// 1. We need to create a list to store one or more
-		//    Machines
+		//create a list to store one or more Machines
 		List<Host> hostList = new ArrayList<Host>();
 
-		// 2. A Machine contains one or more PEs or CPUs/Cores. Therefore, should
-		//    create a list to store these PEs before creating
-		//    a Machine.
+		//A Machine contains one or more PEs(Processing elements) or CPUs/Cores. 
+		//Therefore, should create a list to store these PEs before creating a Machine.
 		List<Pe> peList1 = new ArrayList<Pe>();
 
 		int mips = 1000;
 
-		// 3. Create PEs and add these into the list.
+		// Create PEs and add these into the list.
 		//for a quad-core machine, a list of 4 PEs is required:
-		peList1.add(new Pe(0, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
+		peList1.add(new Pe(0, new PeProvisionerSimple(mips)));// need to store Pe id and MIPS Rating
 		peList1.add(new Pe(1, new PeProvisionerSimple(mips)));
 		peList1.add(new Pe(2, new PeProvisionerSimple(mips)));
 		peList1.add(new Pe(3, new PeProvisionerSimple(mips)));
@@ -168,7 +167,7 @@ public class cloudsimexample {
 		peList2.add(new Pe(0, new PeProvisionerSimple(mips)));
 		peList2.add(new Pe(1, new PeProvisionerSimple(mips)));
 
-		//4. Create Hosts with its id and list of PEs and add them to the list of machines
+		//Create Hosts with its id and list of PEs and add them to the list of machines
 		int hostId=0;
 		int ram = 16384; //host memory (MB)
 		long storage = 1000000; //host storage
@@ -183,7 +182,7 @@ public class cloudsimexample {
     				peList1,
     				new VmSchedulerTimeShared(peList1)
     			)
-    		); // This is our first machine
+    		); // first machine
 
 		hostId++;
 
@@ -198,37 +197,33 @@ public class cloudsimexample {
     			)
     		); // Second machine
 
-		// 5. Create a DatacenterCharacteristics object that stores the
-		//    properties of a data center: architecture, OS, list of
-		//    Machines, allocation policy: time- or space-shared, time zone
-		//    and its price (G$/Pe time unit).
+		// Create a DatacenterCharacteristics object that stores the properties of a data center
 		String arch = "x86";      // system architecture
 		String os = "Linux";          // operating system
 		String vmm = "Xen";
+		
 		double time_zone = 10.0;         // time zone this resource located
 		double cost = 3.0;              // the cost of using processing in this resource
 		double costPerMem = 0.05;		// the cost of using memory in this resource
 		double costPerStorage = 0.1;	// the cost of using storage in this resource
 		double costPerBw = 0.1;			// the cost of using bw in this resource
-		LinkedList<Storage> storageList = new LinkedList<Storage>();	//we are not adding SAN devices by now
+		LinkedList<Storage> storageList = new LinkedList<Storage>();	
 
 		DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
                 arch, os, vmm, hostList, time_zone, cost, costPerMem, costPerStorage, costPerBw);
 
 
-		// 6. Finally, we need to create a PowerDatacenter object.
+		//create a PowerDatacenter object.
 		Datacenter datacenter = null;
 		try {
 			datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 0);
 		} catch (Exception e) {
 			e.printStackTrace();
-		}
-
+		} 
+		
 		return datacenter;
 	}
 
-	//We strongly encourage users to develop their own broker policies, to submit vms and cloudlets according
-	//to the specific rules of the simulated scenario
 	private static DatacenterBroker createBroker(String name){
 
 		DatacenterBroker broker = null;
@@ -249,6 +244,7 @@ public class cloudsimexample {
 		int size = list.size();
 		Cloudlet cloudlet;
 
+		
 		String indent = "    ";
 		Log.printLine();
 		Log.printLine("========== OUTPUT ==========");
@@ -267,76 +263,6 @@ public class cloudsimexample {
 						indent + indent + indent + dft.format(cloudlet.getActualCPUTime()) +
 						indent + indent + dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime()));
 			}
-		}
-
-	}
-
-	public static class GlobalBroker extends SimEntity {
-
-		private static final int CREATE_BROKER = 0;
-		private List<Vm> vmList;
-		private List<Cloudlet> cloudletList;
-		private DatacenterBroker broker;
-
-		public GlobalBroker(String name) {
-			super(name);
-		}
-
-		@Override
-		public void processEvent(SimEvent ev) {
-			switch (ev.getTag()) {
-			case CREATE_BROKER:
-				setBroker(createBroker(super.getName()+"_"));
-
-				//Create VMs and Cloudlets and send them to broker
-				setVmList(createVM(getBroker().getId(), 5, 100)); //creating 5 vms
-				setCloudletList(createCloudlet(getBroker().getId(), 10, 100)); // creating 10 cloudlets
-
-				broker.submitVmList(getVmList());
-				broker.submitCloudletList(getCloudletList());
-
-				CloudSim.resumeSimulation();
-
-				break;
-
-			default:
-				Log.printLine(getName() + ": unknown event type");
-				break;
-			}
-		}
-
-		@Override
-		public void startEntity() {
-			Log.printLine(super.getName()+" is starting...");
-			schedule(getId(), 200, CREATE_BROKER);
-		}
-
-		@Override
-		public void shutdownEntity() {
-		}
-
-		public List<Vm> getVmList() {
-			return vmList;
-		}
-
-		protected void setVmList(List<Vm> vmList) {
-			this.vmList = vmList;
-		}
-
-		public List<Cloudlet> getCloudletList() {
-			return cloudletList;
-		}
-
-		protected void setCloudletList(List<Cloudlet> cloudletList) {
-			this.cloudletList = cloudletList;
-		}
-
-		public DatacenterBroker getBroker() {
-			return broker;
-		}
-
-		protected void setBroker(DatacenterBroker broker) {
-			this.broker = broker;
 		}
 
 	}
@@ -399,7 +325,7 @@ public class cloudsimexample {
 	
 	/*create a 2D matrix to represent task-vm relationship*/
 	  /* row is cloudlet and column is vm, intersection cell is the expected*/
-	private static List<List<Double>> create2DMatrix(List<? extends Cloudlet> cloudletList,List<? extends Vm> vmList)
+	private static List<List<Double>> create2DMatrix(List<Cloudlet> cloudletList,List<Vm> vmList)
 	{
 		List<List<Double>> table= new ArrayList<List<Double>>();
 		for(int i=0;i<cloudletList.size();i++)
@@ -413,7 +339,7 @@ public class cloudsimexample {
 				Double load=cloudletList.get(i).getCloudletLength()/vmList.get(j).getMips();
 				temp.add(load);
 			}
-			temp.add(originalCloudletId);
+			temp.add(originalCloudletId); 
 			table.add(temp);
 		}
 		return table;
@@ -468,24 +394,21 @@ public class cloudsimexample {
 			map.put(rowInfo, min);
 		}
 	
-		// step 2: find the max among the min_candidates in the map
+		
+		// find the max among the min_candidates in the map
 		// it's a sorting problem basically
-		// System.out.println("before sorting ");
-		// printMapForMaxMin(map);
+//		System.out.println("before sorting ");
+//		printMapForMaxMin(map);
 	
-		// System.out.println("after sorting");
+		//System.out.println("after sorting");
 		HashMap<Integer[], Double> sortedMap = sortMapByValue(map);
-		// printMapForMaxMin(sortedMap);
+		//printMapForMaxMin(sortedMap);
 	
 		Map<Integer[], Double> firstPair = getFirstPairFromMap(sortedMap);
 		// printMapForMaxMin(firstPair);
 		return firstPair;
 	}
 	
-	/* sort the map by value */
-	// http://www.java2novice.com/java-interview-programs/sort-a-map-by-value/
-	// http://beginnersbook.com/2013/12/how-to-sort-hashmap-in-java-by-keys-and-values/
-	// http://stackoverflow.com/questions/8119366/sorting-hashmap-by-values
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private static HashMap<Integer[], Double> sortMapByValue(Map<Integer[], Double> map)
 	{
@@ -498,7 +421,7 @@ public class cloudsimexample {
 			}
 		});
 	
-		// Here I am copying the sorted list in HashMap
+		// copying the sorted list in HashMap
 		// using LinkedHashMap to preserve the insertion order
 		HashMap sortedHashMap = new LinkedHashMap();
 		for (Iterator it = list.iterator(); it.hasNext();) {
@@ -529,6 +452,7 @@ public class cloudsimexample {
 	 }
 	 
 	 /*update the expected completion time */
+	 
 	 private static void updateTotalTimeMatrix(int columnIndex,Double oldReadyTime,Double[] readyTime,List<List<Double>> taskVmsMatrix)
 	 {
 		 //by adding current ready time to old corresponding expected completion time
@@ -542,32 +466,46 @@ public class cloudsimexample {
 		 }
 	 }
 	 
+	 /* print current cloudlet vs vm matrix */ 
+	 
 	 private static void print2DArrayList(List<List<Double>> table)
 	 {
-		 System.out.printf("The current matirx is as below,with size of %d by %d\n", table.size(),table.get(0).size());
+		 String indent="           ";
+		 System.out.printf("The current required exceution time matirx is as below,with size of %d by %d\n", table.size(),table.get(0).size());
+		 //System.out.printf(indent);
+		 for(int j=0;j<5;j++)
+		 {
+			 System.out.printf("    Vm"+j+indent);
+		 }
+		 System.out.println("cloudletNum");
 		 for(int i=0;i<table.size();i++)
 		 {
+	 		//System.out.printf(indent);
+	 		 String indent2="   ";
 			 for(int j=0;j<table.get(i).size();j++)
 			 {
-				 System.out.printf("%-11.5f", table.get(i).get(j));
+				 System.out.printf("%-15.5f", table.get(i).get(j));
+				 System.out.printf(indent2);
 			 }
 			 System.out.printf("\n");
 		 }
 		 
 	 }
 	 
+	 /* print selected cloudlet-vm pair */ 
+	 
 	private static void printMapForMaxMin(Map<Integer[], Double> map) {
 		for (Entry<Integer[], Double> entry : map.entrySet()) {
 			Integer[] key = entry.getKey();
 			Double value = entry.getValue();
-			System.out.printf("The keys are: {%d, %d, %d} ===> ", key[0], key[1], key[2]);
+			System.out.printf("The required values {row,column,cloudlet id} : {%d, %d, %d} ===> ", key[0], key[1], key[2]);
 			System.out.printf("%.4f(%s), located at row %d column %d, and the cloudlet id is %d \n", value, "max",
 					key[0], key[1], key[2]);
 		}
 	}
 	
 	/* get the first pair of map */
-	// http://stackoverflow.com/questions/26230225/hashmap-getting-first-key-value
+	
 	private static Map<Integer[], Double> getFirstPairFromMap(Map<Integer[], Double> map) {
 		Map.Entry<Integer[], Double> entry = map.entrySet().iterator().next();
 		Integer[] key = entry.getKey();
@@ -576,16 +514,8 @@ public class cloudsimexample {
 		firstPair.put(key, value);
 		return firstPair;
 	}
-	//private static void printMapForMaxMin(Map<Integer[],Double> map)
-	//{
-	//	for(Entry<Integer[],Double> entry : map.entrySet())
-	//	{
-	//		Integer[] key=entry.getKey();
-	//		Double value=entry.getValue();
-	//		System.out.println("The keys are:" + "{"+key[0]+","+key[1]+","+key[2]+"}");
-	//		System.out.println("The min is"+value+", located at row "+key[0]+" column "+key[1]+" and the cloudlet id is "+key[2]);
-	//	}
-	//}
+	
+	/* calculate average turn-around time */
 	
 	public double calculateAvgTurnAroundTime(List<? extends Cloudlet> cloudletList)
 	{
@@ -600,12 +530,9 @@ public class cloudsimexample {
 		System.out.printf("The average turnaround time is %.4f\n",averageTurnAroundTime);
 		return averageTurnAroundTime;
 	}
+	
 	/* calculate throughput */
-	// http://stackoverflow.com/questions/1806816/java-finding-the-highest-value-in-an-array
-	// we can actually get the result from the largest value in ready time
-	// array,
-	// in this case, this method can be used in DatacenterBroker.java,
-	// the result will show up before the simulation though
+	
 	public double calculateThroughput(List<? extends Cloudlet> cloudletList)
 	{
 		double maxFinishTime=0.0;
@@ -620,6 +547,8 @@ public class cloudsimexample {
 		System.out.printf("The throughput is %.6f\n",throughput);
 		return throughput;
 	}
+	
+	/* calculate average throughput */
 	
 	public static double calculateThroughputNew(Double[] readyTime, int cloudletNum) {
 		List<Double> temp = new ArrayList<Double>(Arrays.asList(readyTime));
